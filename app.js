@@ -73,7 +73,7 @@ function correctTranscription(transcription, translated) {
 
     let processed;
     processed = {
-        fromBeginning: "",
+        fromBeginning: [],
         transcription2: transcription,
         translatedText2: translatedText
     }
@@ -88,7 +88,7 @@ function correctTranscription(transcription, translated) {
     do {
         fromBeginning = processed.fromBeginning;
         processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);
-    } while (processed.fromBeginning !== fromBeginning);
+    } while (processed.fromBeginning.length !== fromBeginning.length);
 
     // return processed;
     // console.log('Cut translate text:', processed.transcription2.slice(0, 5), processed.translatedText2, '\n\n\n' + processed.fromBeginning);        process.exit();
@@ -123,8 +123,14 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     }
     let nextIncorrectedAtFirst = transcription.findIndex((item) => { return !item.corrected; });
     if (nextIncorrectedAtFirst === -1) {
-        return transcription;
+        console.log('From beginning:', fromBeginning);
+        return {
+            fromBeginning,
+            transcription2: [...transcription],
+            translatedText2: translatedText
+        };
     }
+    fromBeginning = fromBeginning.concat(transcription.slice(0, nextIncorrectedAtFirst));
 
     postTextItems = transcription.slice(nextIncorrectedAtFirst - 5, nextIncorrectedAtFirst);
     postText = postTextItems.map((item) => { return item.text; }).join('');
@@ -135,7 +141,6 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     if (cutTranslateText.length === 0) {
         return transcription;
     }
-    fromBeginning = fromBeginning + translatedText.slice(0, endOfPostText);
 
     return {
         fromBeginning,
