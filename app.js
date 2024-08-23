@@ -1,4 +1,4 @@
-console.log('Hello World!');
+console.log('='.repeat(350));
 let job = require('./audio.json');
 let jobData = job.data;
 let videoScript = jobData.videoScript;
@@ -41,6 +41,7 @@ function djb2(str) {
     }
     return hash >>> 0;
 }
+function correctTranscription(transcription, translated) {};
 (async function(){
     console.log('Start whispering...');
     let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
@@ -57,5 +58,7 @@ function djb2(str) {
     // console.log(outputSrt);
     let outputSrtJson = JSON.parse(outputSrt);
     let transcription = outputSrtJson.transcription;
-    console.log(transcription);
+    // console.log(transcription);
+    let correctedTranscription = correctTranscription(transcription, translated);
+    console.log(correctedTranscription);
 })();
