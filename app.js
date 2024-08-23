@@ -51,6 +51,7 @@ function correctTranscription(transcription, translated) {
     for (let i = 0; i < transcription.length; i++) {
         let phrase = transcription.slice(i, i + 5).map((item) => { return item.text; }).join('');
         phrase = phrase.trim().toLowerCase();
+        phrase = removePunctuation(phrase).trim();
         // if the phrase is in the translated text
         if (translatedText.includes(' ' + phrase + ' ')) {
             // mark these words as corrected
@@ -67,6 +68,25 @@ function correctTranscription(transcription, translated) {
     console.log('Incorrect transcription:', incorrectTranscription);
     let correctedTranscription = transcription.filter((item) => { return item.corrected; }).map((item) => { return item.text; });
     console.log('Corrected transcription:', correctedTranscription);
+    for (let i = 0; i < transcription.length; i++) {
+        if (!transcription[i].corrected) {
+            let theLastCorrectedIndex = i - 1;
+            if (theLastCorrectedIndex < 0) {
+                theLastCorrectedIndex = 0;
+            }
+            let theLastCorrectedPhrase = transcription.slice(theLastCorrectedIndex - 5, theLastCorrectedIndex).map((item) => { return item.text; }).join('');
+            let theNextCorrectedIndex = transcription.slice(i).findIndex((item) => { return item.corrected; });
+            if (theNextCorrectedIndex === -1) {
+                theNextCorrectedIndex = transcription.length;
+            } else {
+                theNextCorrectedIndex += i;
+            }
+            let theNextCorrectedPhrase = transcription.slice(theNextCorrectedIndex, theNextCorrectedIndex + 5).map((item) => { return item.text; }).join('');
+            let sequence = transcription.slice(theLastCorrectedIndex, theNextCorrectedIndex).map((item) => { return item.text; }).join('');
+            console.log('Sequence:', theLastCorrectedPhrase, '-', sequence, '-', theNextCorrectedPhrase);
+            i = theNextCorrectedIndex;
+        }
+    }
 };
 (async function(){
     console.log('Start whispering...');
