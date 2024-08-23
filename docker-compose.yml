@@ -6,4 +6,5 @@ services:
     volumes:
       - ./app.js:/whisper.cpp/app.js
       - ./audio.json:/whisper.cpp/audio.json
+      - ./output/:/whisper.cpp/output/
     command: node app.js

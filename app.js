@@ -8,7 +8,7 @@ let audioFile = jobData.audioFile;
 // whisper.cpp --model /whisper.cpp/models/ggml-tiny.bin -f in.wav -osrt --max-len 1 --split-on-word true -l vi
 let whisperFile = async (modelFile, inputFile, outputFile, whisperExecFile) => {
     let outputFileWithoutExt = outputFile.replace(/\.[^/.]+$/, '');
-    let whisper = child_process.spawn(whisperExecFile, ['--model', modelFile, '-f', inputFile, '-osrt', '--max-len', '1', '--split-on-word', 'true', '-l', 'vi', '-of', outputFileWithoutExt]);
+    let whisper = child_process.spawn(whisperExecFile, ['--model', modelFile, '-f', inputFile, '-ojf', '--max-len', '1', '--split-on-word', 'true', '-l', 'vi', '-of', outputFileWithoutExt]);
     whisper.stdout.on('data', (data) => {
         console.log(`stdout: ${data}`);
     });
@@ -34,11 +34,20 @@ let whisperFile = async (modelFile, inputFile, outputFile, whisperExecFile) => {
 
 let child_process = require('child_process');
 let fs = require('fs');
+function djb2(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash * 33) ^ str.charCodeAt(i);
+    }
+    return hash >>> 0;
+}
 (async function(){
     console.log('Start whispering...');
     let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
     let inputFile = '/whisper.cpp/in.wav';
-    let outputFile = '/whisper.cpp/out.srt';
+
+    let djb2Str = djb2(translated.join(''));
+    let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
     let whisperExecFile = 'whisper.cpp';
     //
     await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
