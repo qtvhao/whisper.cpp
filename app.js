@@ -43,7 +43,7 @@ function djb2(str) {
 }
 function removePunctuation(text) {
     // replace all punctuation and newlines with empty string
-    return text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ');
+    return text.replace(/[.,\/#!$%\^&\*;:{}=\-–_`~()]/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ');
 }
 function correctTranscription(transcription, translated) {
     let translatedText = translated.join('').toLowerCase()
@@ -71,23 +71,77 @@ function correctTranscription(transcription, translated) {
     console.log('Corrected transcription:', correctedTranscription);
     transcription = transcription.filter((item) => { return item.text.length > 0; });
 
-    return processIncorrectPhrases(transcription, translatedText, 1);
+    let processed;
+    processed = {
+        fromBeginning: "",
+        transcription2: transcription,
+        translatedText2: translatedText
+    }
+    fromBeginning = processed.fromBeginning;
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    // processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);    if (processed.fromBeginning === fromBeginning) { return fromBeginning;    }
+    do {
+        fromBeginning = processed.fromBeginning;
+        processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);
+    } while (processed.fromBeginning !== fromBeginning);
+
+    // return processed;
+    // console.log('Cut translate text:', processed.transcription2.slice(0, 5), processed.translatedText2, '\n\n\n' + processed.fromBeginning);        process.exit();
+
+    return processed.transcription;
 };
-function processIncorrectPhrases(transcription, translatedText, windowSize) {
+function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
+    let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
+    let postText = postTextItems.map((item) => { return item.text; }).join('');
     if (correctedAtFirst > 0) {
-        let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
-        let postText = postTextItems.map((item) => { return item.text; }).join('');
         let correctedText = translatedText.substring(0, translatedText.indexOf(postText));
         let correctedContentAtFirst = transcription.slice(0, correctedAtFirst).map((item) => { return item.text; }).join('');
-        if (correctedText.split(' ').length === correctedAtFirst) {
+        let correctedTextWordsCount = correctedText.trim().split(' ').length;
+        if (correctedTextWordsCount === correctedAtFirst) {
             console.log('Corrected text is correct', correctedText, correctedContentAtFirst);
             // replace transcription with corrected text
             for (let i = 0; i < correctedAtFirst; i++) {
                 transcription[i].text = " " + correctedText.split(' ')[i];
+                transcription[i].corrected = true;
             }
+        }else{
+            transcription[0].text = " " + correctedText;
+            transcription[0].corrected = true;
+            for (let i = 1; i < correctedAtFirst; i++) {
+                transcription[i].text = "";
+                transcription[i].corrected = true;
+                transcription[i].beRemoved = true;
+            }
+            // throw new Error('Corrected text is incorrect. Corrected text: ' + correctedText + ' Corrected content at first: ' + correctedContentAtFirst + ' Corrected text words count: ' + correctedTextWordsCount + ' Corrected at first: ' + correctedAtFirst);
         }
     }
+    let nextIncorrectedAtFirst = transcription.findIndex((item) => { return !item.corrected; });
+    if (nextIncorrectedAtFirst === -1) {
+        return transcription;
+    }
+
+    postTextItems = transcription.slice(nextIncorrectedAtFirst - 5, nextIncorrectedAtFirst);
+    postText = postTextItems.map((item) => { return item.text; }).join('');
+    let endOfPostText = translatedText.indexOf(postText) + postText.length;
+    let cutTranslateText = translatedText.slice(endOfPostText);
+    transcription = transcription.slice(nextIncorrectedAtFirst);
+    // remove all items before the next incorrected phrase
+    if (cutTranslateText.length === 0) {
+        return transcription;
+    }
+    fromBeginning = fromBeginning + translatedText.slice(0, endOfPostText);
+
+    return {
+        fromBeginning,
+        transcription2: [...transcription],
+        translatedText2: cutTranslateText
+    };
     // for (let i = 0; i < transcription.length; i++) {
     //     if (!transcription[i].corrected) {
     //         // let theLastCorrectedIndex = i - 1;
@@ -130,7 +184,7 @@ function processIncorrectPhrases(transcription, translatedText, windowSize) {
     // }
     // //
     // if (windowSize === 1) {
-    return transcription;
+        // return transcription;
     // }else{
     //     return processIncorrectPhrases(transcription, translatedText, windowSize - 1);
     // }
@@ -165,6 +219,6 @@ function processIncorrectPhrases(transcription, translatedText, windowSize) {
     let transcription = outputSrtJson.transcription;
     // console.log(transcription);
     let correctedTranscription = correctTranscription(transcription, translated);
-    console.log('-'.repeat(350));
+    console.log('-'.repeat(290));
     console.log(correctedTranscription.map((item) => { return item.text; }).join(''));
 })();
