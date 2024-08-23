@@ -82,6 +82,11 @@ function correctTranscription(transcription, translated) {
         }
         processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);
     } while (processed.transcription2.length > 0);
+    //
+    for (let i = 0; i < processed.fromBeginning.length; i++) {
+        let item = processed.fromBeginning[i];
+        console.log(i, ', ', item.text);
+    }
     processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
 
     return processed.fromBeginning;
@@ -107,12 +112,12 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
                 transcription[i].corrected = true;
             }
         }else{
-            transcription[0].text = " " + correctedText;
+            // transcription[0].text = " " + correctedText;
             transcription[0].corrected = true;
             for (let i = 1; i < correctedAtFirst; i++) {
-                transcription[i].text = "";
+                // transcription[i].text = "";
                 transcription[i].corrected = true;
-                transcription[i].beRemoved = true;
+                // transcription[i].beRemoved = true;
             }
         }
     }
@@ -163,5 +168,5 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     // console.log(transcription);
     let correctedTranscription = correctTranscription(transcription, translated);
     console.log('-'.repeat(290));
-    console.log(correctedTranscription.map((item) => { return item.text; }).join(''));
+    console.log(correctedTranscription.map((item) => { return item.text.trim(); }).join(' '));
 })();
