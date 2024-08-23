@@ -50,8 +50,12 @@ function djb2(str) {
     let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
     let whisperExecFile = 'whisper.cpp';
     //
-    await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
+    if ( !fs.existsSync(outputFile) ) {
+        await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
+    }
     let outputSrt = fs.readFileSync(outputFile, 'utf8');
-    console.log(outputSrt);
-    console.log(translated);
+    // console.log(outputSrt);
+    let outputSrtJson = JSON.parse(outputSrt);
+    let transcription = outputSrtJson.transcription;
+    console.log(transcription);
 })();
