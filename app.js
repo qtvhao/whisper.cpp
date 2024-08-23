@@ -42,7 +42,8 @@ function djb2(str) {
     return hash >>> 0;
 }
 function removePunctuation(text) {
-    return text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+    // replace all punctuation and newlines with empty string
+    return text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ');
 }
 function correctTranscription(transcription, translated) {
     let translatedText = translated.join('').toLowerCase()
@@ -68,56 +69,71 @@ function correctTranscription(transcription, translated) {
     console.log('Incorrect transcription:', incorrectTranscription);
     let correctedTranscription = transcription.filter((item) => { return item.corrected; }).map((item) => { return item.text; });
     console.log('Corrected transcription:', correctedTranscription);
+    transcription = transcription.filter((item) => { return item.text.length > 0; });
 
-    return processIncorrectPhrases(transcription, translatedText, 7);
+    return processIncorrectPhrases(transcription, translatedText, 1);
 };
 function processIncorrectPhrases(transcription, translatedText, windowSize) {
-    for (let i = 0; i < transcription.length; i++) {
-        if (!transcription[i].corrected) {
-            // let theLastCorrectedIndex = i - 1;
-            // if (theLastCorrectedIndex < 0) {
-            //     theLastCorrectedIndex = 0;
-            // }
-            // let theLastCorrectedPhrase = transcription.slice(theLastCorrectedIndex - windowSize, theLastCorrectedIndex).map((item) => { return item.text; }).join('');
-            // let theNextCorrectedIndex = transcription.slice(i).findIndex((item) => { return item.corrected; });
-            // if (theNextCorrectedIndex === -1) {
-            //     theNextCorrectedIndex = transcription.length;
-            // } else {
-            //     theNextCorrectedIndex += i;
-            // }
-            // let theNextCorrectedPhrase = transcription.slice(theNextCorrectedIndex, theNextCorrectedIndex + windowSize).map((item) => { return item.text; }).join('');
-            // theNextCorrectedPhrase = theNextCorrectedPhrase.trim().toLowerCase();
-            // theNextCorrectedPhrase = removePunctuation(theNextCorrectedPhrase).trim();
-            // theLastCorrectedPhrase = theLastCorrectedPhrase.trim().toLowerCase();
-            // theLastCorrectedPhrase = removePunctuation(theLastCorrectedPhrase).trim();
-            // // let sequence = transcription.slice(theLastCorrectedIndex, theNextCorrectedIndex).map((item) => { return item.text; }).join('');
-            // if (translatedText.indexOf(theLastCorrectedPhrase) === -1 || translatedText.indexOf(theNextCorrectedPhrase) === -1) {
-            //     // console.log('Sequence:', theLastCorrectedPhrase, '-', sequence, '-', theNextCorrectedPhrase);
-            //     if (windowSize === 1) {
-            //         // console.log('Cannot correct the phrase:', sequence);
-            //         return;
-            //     }
-            //     i = theNextCorrectedIndex;
-            // }else{
-            //     let correctedSequence = translatedText.substring(translatedText.indexOf(theLastCorrectedPhrase) + theLastCorrectedPhrase.length, translatedText.indexOf(theNextCorrectedPhrase));
-            //     // get the sequence between the last corrected phrase and the next corrected phrase
-            //     if (correctedSequence.length > 200) {
-            //         console.log('Corrected sequence is too long:', correctedSequence);
-            //         throw new Error('Corrected sequence is too long');
-            //     }
-            //     // console.log('Sequence:', theLastCorrectedPhrase, '-', correctedSequence, '-', theNextCorrectedPhrase);
-            //     transcription.splice(theLastCorrectedIndex, theNextCorrectedIndex - theLastCorrectedIndex, { text: " " + correctedSequence.trim(), corrected: true });
-            //     // replace the sequence with the corrected sequence
-            //     i = theLastCorrectedIndex + 1;
-            // }
+    let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
+    if (correctedAtFirst > 0) {
+        let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
+        let postText = postTextItems.map((item) => { return item.text; }).join('');
+        let correctedText = translatedText.substring(0, translatedText.indexOf(postText));
+        let correctedContentAtFirst = transcription.slice(0, correctedAtFirst).map((item) => { return item.text; }).join('');
+        if (correctedText.split(' ').length === correctedAtFirst) {
+            console.log('Corrected text is correct', correctedText, correctedContentAtFirst);
+            // replace transcription with corrected text
+            for (let i = 0; i < correctedAtFirst; i++) {
+                transcription[i].text = " " + correctedText.split(' ')[i];
+            }
         }
     }
-    //
-    if (windowSize === 1) {
-        return transcription;
-    }else{
-        return processIncorrectPhrases(transcription, translatedText, windowSize - 1);
-    }
+    // for (let i = 0; i < transcription.length; i++) {
+    //     if (!transcription[i].corrected) {
+    //         // let theLastCorrectedIndex = i - 1;
+    //         // if (theLastCorrectedIndex < 0) {
+    //         //     theLastCorrectedIndex = 0;
+    //         // }
+    //         // let theLastCorrectedPhrase = transcription.slice(theLastCorrectedIndex - windowSize, theLastCorrectedIndex).map((item) => { return item.text; }).join('');
+    //         // let theNextCorrectedIndex = transcription.slice(i).findIndex((item) => { return item.corrected; });
+    //         // if (theNextCorrectedIndex === -1) {
+    //         //     theNextCorrectedIndex = transcription.length;
+    //         // } else {
+    //         //     theNextCorrectedIndex += i;
+    //         // }
+    //         // let theNextCorrectedPhrase = transcription.slice(theNextCorrectedIndex, theNextCorrectedIndex + windowSize).map((item) => { return item.text; }).join('');
+    //         // theNextCorrectedPhrase = theNextCorrectedPhrase.trim().toLowerCase();
+    //         // theNextCorrectedPhrase = removePunctuation(theNextCorrectedPhrase).trim();
+    //         // theLastCorrectedPhrase = theLastCorrectedPhrase.trim().toLowerCase();
+    //         // theLastCorrectedPhrase = removePunctuation(theLastCorrectedPhrase).trim();
+    //         // // let sequence = transcription.slice(theLastCorrectedIndex, theNextCorrectedIndex).map((item) => { return item.text; }).join('');
+    //         // if (translatedText.indexOf(theLastCorrectedPhrase) === -1 || translatedText.indexOf(theNextCorrectedPhrase) === -1) {
+    //         //     // console.log('Sequence:', theLastCorrectedPhrase, '-', sequence, '-', theNextCorrectedPhrase);
+    //         //     if (windowSize === 1) {
+    //         //         // console.log('Cannot correct the phrase:', sequence);
+    //         //         return;
+    //         //     }
+    //         //     i = theNextCorrectedIndex;
+    //         // }else{
+    //         //     let correctedSequence = translatedText.substring(translatedText.indexOf(theLastCorrectedPhrase) + theLastCorrectedPhrase.length, translatedText.indexOf(theNextCorrectedPhrase));
+    //         //     // get the sequence between the last corrected phrase and the next corrected phrase
+    //         //     if (correctedSequence.length > 200) {
+    //         //         console.log('Corrected sequence is too long:', correctedSequence);
+    //         //         throw new Error('Corrected sequence is too long');
+    //         //     }
+    //         //     // console.log('Sequence:', theLastCorrectedPhrase, '-', correctedSequence, '-', theNextCorrectedPhrase);
+    //         //     transcription.splice(theLastCorrectedIndex, theNextCorrectedIndex - theLastCorrectedIndex, { text: " " + correctedSequence.trim(), corrected: true });
+    //         //     // replace the sequence with the corrected sequence
+    //         //     i = theLastCorrectedIndex + 1;
+    //         // }
+    //     }
+    // }
+    // //
+    // if (windowSize === 1) {
+    return transcription;
+    // }else{
+    //     return processIncorrectPhrases(transcription, translatedText, windowSize - 1);
+    // }
 }
 // function substrBetween(str, start, end) {
 //     let startIndex = str.indexOf(start);
