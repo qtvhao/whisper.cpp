@@ -41,7 +41,29 @@ function djb2(str) {
     }
     return hash >>> 0;
 }
-function correctTranscription(transcription, translated) {};
+function correctTranscription(transcription, translated) {
+    let translatedText = translated.join('');
+    console.log('Correcting transcription...');
+    for (let i = 0; i < transcription.length; i++) {
+        let phrase = transcription.slice(i, i + 5).map((item) => { return item.text; }).join('');
+        phrase = phrase.trim();
+        // if the phrase is in the translated text
+        if (translatedText.includes(' ' + phrase + ' ')) {
+            // mark these words as corrected
+            for (let j = i; j < i + 5; j++) {
+                if (j >= transcription.length) {
+                    break;
+                }
+                transcription[j].corrected = true;
+            }
+        }
+    }
+    // filter items that are not corrected
+    let incorrectTranscription = transcription.filter((item) => { return !item.corrected; }).map((item) => { return item.text; });
+    console.log('Incorrect transcription:', incorrectTranscription);
+    let correctedTranscription = transcription.filter((item) => { return item.corrected; }).map((item) => { return item.text; });
+    console.log('Corrected transcription:', correctedTranscription);
+};
 (async function(){
     console.log('Start whispering...');
     let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
