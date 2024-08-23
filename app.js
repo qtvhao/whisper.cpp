@@ -65,6 +65,7 @@ function correctTranscription(transcription, translated) {
         }
     }
     transcription = transcription.filter((item) => { return item.text.replace(/^\s+$/gi, '').length > 0; });
+    // transcription = transcription.slice(0, 80);
 
     let processed;
     processed = {
@@ -72,7 +73,13 @@ function correctTranscription(transcription, translated) {
         transcription2: transcription,
         translatedText2: translatedText
     }
+    let max = 3;
+    let i = 0;
     do {
+        i++;
+        if (i > max) {
+            // break;
+        }
         processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);
     } while (processed.transcription2.length > 0);
     processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
@@ -82,10 +89,18 @@ function correctTranscription(transcription, translated) {
 function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
     let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
-    let postText = postTextItems.map((item) => { return item.text; }).join('');
+    let postText = postTextItems.map((item) => { return item.text; }).join('').toLowerCase().trim();
+    postText = removePunctuation(postText);
     if (correctedAtFirst > 0) {
-        let correctedText = translatedText.substring(0, translatedText.indexOf(postText)).trim();
+        let positionOfPostTextInTranslatedText = translatedText.indexOf(postText);
+        if (positionOfPostTextInTranslatedText === -1) {
+            console.log('Post text:', postText);
+            console.log('Translated text:', translatedText);
+            throw new Error('Post text not found in translated text');
+        }
+        let correctedText = translatedText.substring(0, positionOfPostTextInTranslatedText).trim();
         let correctedTextWordsCount = correctedText.split(' ').length;
+        // console.log('Transcription pass', translatedText.indexOf(postText));
         if (correctedTextWordsCount === correctedAtFirst) {
             for (let i = 0; i < correctedAtFirst; i++) {
                 transcription[i].text = " " + correctedText.split(' ')[i];
@@ -109,6 +124,7 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
             translatedText2: translatedText
         };
     }
+    // transcription[0].text = " | " + transcription[0].text.trim() + " < ";
     fromBeginning = fromBeginning.concat(transcription.slice(0, nextIncorrectedAtFirst));
 
     postTextItems = transcription.slice(nextIncorrectedAtFirst - 5, nextIncorrectedAtFirst);
@@ -123,7 +139,7 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
 
     return {
         fromBeginning,
-        transcription2: [...transcription],
+        transcription2: transcription,
         translatedText2: cutTranslateText
     };
 }
