@@ -1,0 +1,7 @@
+version: '3.1'
+services:
+  app:
+    build: .
+    volumes:
+      - ./app.js:/whisper.cpp/app.js
+    command: node app.js
