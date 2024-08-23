@@ -3,6 +3,11 @@ set -xeo pipefail
 
 # docker build -t whispercpp .
 
+AAC_FILE="/samba-claim0-apis-production/gen-audio-worker-storage/synthesize-result-3165716572.aac"
+WAV_OUTPUT="./in.wav"
+# read_wav: WAV file 'in.wav' must be 16 kHz
+# ffmpeg -i $AAC_FILE $WAV_OUTPUT -y
+ffmpeg -i $AAC_FILE -ar 16000 $WAV_OUTPUT -y
 docker compose up -d --build
 docker compose logs -f app
 
