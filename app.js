@@ -41,12 +41,16 @@ function djb2(str) {
     }
     return hash >>> 0;
 }
+function removePunctuation(text) {
+    return text.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, '');
+}
 function correctTranscription(transcription, translated) {
-    let translatedText = translated.join('');
+    let translatedText = translated.join('').toLowerCase()
+    translatedText = removePunctuation(translatedText);
     console.log('Correcting transcription...');
     for (let i = 0; i < transcription.length; i++) {
         let phrase = transcription.slice(i, i + 5).map((item) => { return item.text; }).join('');
-        phrase = phrase.trim();
+        phrase = phrase.trim().toLowerCase();
         // if the phrase is in the translated text
         if (translatedText.includes(' ' + phrase + ' ')) {
             // mark these words as corrected
