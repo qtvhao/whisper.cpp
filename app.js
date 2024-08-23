@@ -82,12 +82,34 @@ function correctTranscription(transcription, translated) {
                 theNextCorrectedIndex += i;
             }
             let theNextCorrectedPhrase = transcription.slice(theNextCorrectedIndex, theNextCorrectedIndex + 5).map((item) => { return item.text; }).join('');
+            theNextCorrectedPhrase = theNextCorrectedPhrase.trim().toLowerCase();
+            theNextCorrectedPhrase = removePunctuation(theNextCorrectedPhrase).trim();
+            theLastCorrectedPhrase = theLastCorrectedPhrase.trim().toLowerCase();
+            theLastCorrectedPhrase = removePunctuation(theLastCorrectedPhrase).trim();
             let sequence = transcription.slice(theLastCorrectedIndex, theNextCorrectedIndex).map((item) => { return item.text; }).join('');
-            console.log('Sequence:', theLastCorrectedPhrase, '-', sequence, '-', theNextCorrectedPhrase);
+            if (translatedText.indexOf(theLastCorrectedPhrase) === -1 || translatedText.indexOf(theNextCorrectedPhrase) === -1) {
+                console.log('Sequence:', theLastCorrectedPhrase, '-', sequence, '-', theNextCorrectedPhrase);
+                throw new Error('Corrected sequence not found');
+            }else{
+                let correctedSequence = translatedText.substring(translatedText.indexOf(theLastCorrectedPhrase) + theLastCorrectedPhrase.length, translatedText.indexOf(theNextCorrectedPhrase));
+                console.log('Sequence:', theLastCorrectedPhrase, '-', correctedSequence, '-', theNextCorrectedPhrase);
+            }
             i = theNextCorrectedIndex;
         }
     }
 };
+// function substrBetween(str, start, end) {
+//     let startIndex = str.indexOf(start);
+//     if (startIndex === -1) {
+//         return null;
+//     }
+//     startIndex += start.length;
+//     let endIndex = str.indexOf(end, startIndex);
+//     if (endIndex === -1) {
+//         return null;
+//     }
+//     return str.substring(startIndex, endIndex);
+// }
 (async function(){
     console.log('Start whispering...');
     let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
