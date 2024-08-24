@@ -115,19 +115,22 @@ var levenshtein = require('fast-levenshtein');
 function mapByTranscription(transcription, wholeArticle) {
     // map the corrected transcription to the whole article
     // check similarity between the transcription and the whole article
+    let transcriptionPoint = 0;
+    console.log('=');
     for (let i = 0; i < wholeArticle.length; i++) {
         let articleItem = wholeArticle[i];
-        console.log('Article item:', articleItem);
+        // console.log('Article item:', articleItem);
         let words = articleItem.split(' ');
         let segmentLengthAtMostSimilar;
         let distanceAtMostSimilar = 1000000;
-        for (let i = -10; i < 20; i++) {
-            let transcriptionSegment = transcription.slice(0, words.length + i);
+        for (let j = -10; j < 20; j++) {
+            // console.log('Cut from ', transcriptionPoint, words.length + j);
+            let transcriptionSegment = transcription.slice(transcriptionPoint, transcriptionPoint + words.length + j);
             let transcriptionText = transcriptionSegment.map((item) => { return item.text; }).join(' ');
             let distance = levenshtein.get(articleItem, transcriptionText, { useCollator: true });
             // lower distance means higher similarity
             // find the most similar transcription segment
-            console.log('Transcription segment:', distance);
+            // console.log('Transcription segment:', distance);
             if (distance < distanceAtMostSimilar) {
                 distanceAtMostSimilar = distance;
                 segmentLengthAtMostSimilar = transcriptionSegment;
@@ -135,10 +138,20 @@ function mapByTranscription(transcription, wholeArticle) {
                 break;
             }
         }
-        console.log(articleItem);
-        console.log('Transcription segment:', distanceAtMostSimilar, segmentLengthAtMostSimilar.map((item) => { return item.text; }).join(' '));
-        process.exit(0);
+        // console.log(articleItem);
+        // console.log('Transcription segment:', distanceAtMostSimilar, segmentLengthAtMostSimilar.map((item) => { return item.text; }).join(' '));
+        transcriptionPoint += segmentLengthAtMostSimilar.length;
+        wholeArticle[i] = {
+            text: articleItem + " | ",
+            audio: segmentLengthAtMostSimilar,
+        }
+        console.log('Transcription length:', transcription.length);
+        console.log('Transcription point:', segmentLengthAtMostSimilar.length);
     }
+    // process.exit(0);
+    //
+
+    return wholeArticle;
 }
 function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
@@ -252,6 +265,6 @@ if (redisHost) {
         // console.log(transcription);
         let correctedTranscription = correctTranscription(transcription, translated);
         console.log('-'.repeat(290));
-        console.log(correctedTranscription[0]);
+        console.log(correctedTranscription.map((item) => { return item.audio.map((item) => { return item.text; }).join(' '); }).join(' '));
     })();
 }
