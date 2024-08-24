@@ -5,6 +5,7 @@ let videoScript = jobData.videoScript;
 let translated = videoScript.map((item) => { return item.translated; });
 let audioFile = jobData.audioFile;
 // console.log(audioFile);
+let Queue = require('bull');
 // whisper.cpp --model /whisper.cpp/models/ggml-tiny.bin -f in.wav -osrt --max-len 1 --split-on-word true -l vi
 let whisperFile = async (modelFile, inputFile, outputFile, whisperExecFile) => {
     let outputFileWithoutExt = outputFile.replace(/\.[^/.]+$/, '');
@@ -67,12 +68,16 @@ function correctTranscription(transcription, translated) {
     transcription = transcription.filter((item) => { return item.text.replace(/^\s+$/gi, '').length > 0; });
     // transcription = transcription.slice(0, 80);
 
+    delete transcription[0].tokens;
+    delete transcription[0].timestamps;
+    console.log('Correcting transcription pass 1', transcription[0]);
     let processed;
     processed = {
         fromBeginning: [],
         transcription2: transcription,
         translatedText2: translatedText
     }
+    // return processed.transcription2;
     let max = 3;
     let i = 0;
     do {
@@ -86,14 +91,15 @@ function correctTranscription(transcription, translated) {
     processed.fromBeginning = processed.fromBeginning.map((item) => {
         return {
             text: item.text.trim(),
+            offsets: item.offsets,
             // tmpCorrected
             corrected: item.tmpCorrected ? false : true,
         };
     });
-    // for (let i = 0; i < processed.fromBeginning.length; i++) {
-    //     let item = processed.fromBeginning[i];
-    //     console.log(i, ', ', item.text);
-    // }
+    for (let i = 0; i < processed.fromBeginning.length; i++) {
+        let item = processed.fromBeginning[i];
+        console.log(i, ', ', item.text, item.offsets);
+    }
     // processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
 
     return processed.fromBeginning;
@@ -157,24 +163,56 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     };
 }
 
-(async function(){
-    console.log('Start whispering...');
-    let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
-    let inputFile = '/whisper.cpp/in.wav';
-
-    let djb2Str = djb2(translated.join(''));
-    let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
-    let whisperExecFile = 'whisper.cpp';
-    //
-    if ( !fs.existsSync(outputFile) ) {
+let redisHost = process.env.REDIS_HOST || '';
+let password = process.env.REDIS_PASSWORD || '';
+let opts = {
+    redis: {
+        host: redisHost,
+        password
+    }
+};
+let lockDuration = 1000 * 60 * 60 * 24;
+let whisperQueue = new Queue('whispercpp', {
+    ...opts,
+    settings: {
+        lockDuration,
+        stalledInterval: 0,
+    },
+});
+let whisperExecFile = 'whisper.cpp';
+let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
+whisperQueue.process(async (job) => {
+    let inputFile = job.data.inputFile;
+    let outputFile = job.data.outputFile;
+    if (!fs.existsSync(outputFile) ) {
         await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
     }
+    // 
+    let translated = job.data.translated;
     let outputSrt = fs.readFileSync(outputFile, 'utf8');
-    // console.log(outputSrt);
     let outputSrtJson = JSON.parse(outputSrt);
     let transcription = outputSrtJson.transcription;
-    // console.log(transcription);
     let correctedTranscription = correctTranscription(transcription, translated);
-    console.log('-'.repeat(290));
-    console.log(correctedTranscription.map((item) => { return item.text.trim(); }).join(' '));
-})();
+
+    return correctedTranscription;
+});
+
+// (async function(){
+//     console.log('Start whispering...');
+//     let inputFile = '/whisper.cpp/in.wav';
+
+//     let djb2Str = djb2(translated.join(''));
+//     let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
+//     //
+//     if ( !fs.existsSync(outputFile) ) {
+//         await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
+//     }
+//     let outputSrt = fs.readFileSync(outputFile, 'utf8');
+//     // console.log(outputSrt);
+//     let outputSrtJson = JSON.parse(outputSrt);
+//     let transcription = outputSrtJson.transcription;
+//     // console.log(transcription);
+//     let correctedTranscription = correctTranscription(transcription, translated);
+//     // console.log('-'.repeat(290));
+//     // console.log(correctedTranscription.map((item) => { return item.text.trim(); }).join(' '));
+// })();
