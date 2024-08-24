@@ -118,10 +118,27 @@ function mapByTranscription(transcription, wholeArticle) {
     for (let i = 0; i < wholeArticle.length; i++) {
         let articleItem = wholeArticle[i];
         console.log('Article item:', articleItem);
-        let transcriptionSegment = transcription.slice(0, articleItem.split(' ').length - 20);
-        console.log('Transcription segment:', transcriptionSegment);
+        let words = articleItem.split(' ');
+        let segmentLengthAtMostSimilar;
+        let distanceAtMostSimilar = 1000000;
+        for (let i = -10; i < 20; i++) {
+            let transcriptionSegment = transcription.slice(0, words.length + i);
+            let transcriptionText = transcriptionSegment.map((item) => { return item.text; }).join(' ');
+            let distance = levenshtein.get(articleItem, transcriptionText, { useCollator: true });
+            // lower distance means higher similarity
+            // find the most similar transcription segment
+            console.log('Transcription segment:', distance);
+            if (distance < distanceAtMostSimilar) {
+                distanceAtMostSimilar = distance;
+                segmentLengthAtMostSimilar = transcriptionSegment;
+            }else{
+                break;
+            }
+        }
+        console.log(articleItem);
+        console.log('Transcription segment:', distanceAtMostSimilar, segmentLengthAtMostSimilar.map((item) => { return item.text; }).join(' '));
+        process.exit(0);
     }
-    process.exit(0);
 }
 function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });

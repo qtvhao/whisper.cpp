@@ -3,6 +3,8 @@ RUN apt-get update && apt-get install -y git make gcc g++ curl ffmpeg
 RUN git clone https://github.com/ggerganov/whisper.cpp.git
 WORKDIR /whisper.cpp
 RUN make tiny
+COPY package.json yarn.lock ./
+RUN yarn
 RUN ln -s /whisper.cpp/main /usr/bin/whisper.cpp
 RUN which whisper.cpp || echo "whisper.cpp not found"
 COPY in.wav .
