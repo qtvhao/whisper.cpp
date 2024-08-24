@@ -5,7 +5,6 @@ let videoScript = jobData.videoScript;
 let translated = videoScript.map((item) => { return item.translated; });
 let audioFile = jobData.audioFile;
 // console.log(audioFile);
-let Queue = require('bull');
 // whisper.cpp --model /whisper.cpp/models/ggml-tiny.bin -f in.wav -osrt --max-len 1 --split-on-word true -l vi
 let whisperFile = async (modelFile, inputFile, outputFile, whisperExecFile) => {
     let outputFileWithoutExt = outputFile.replace(/\.[^/.]+$/, '');
@@ -102,8 +101,28 @@ function correctTranscription(transcription, translated) {
     }
     // processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
 
-    return processed.fromBeginning;
+    console.log(translated);
+    transcription = processed.fromBeginning;
+    translated = mapByTranscription(transcription, translated);
+
+    return translated;
+    // return processed.fromBeginning;
 };
+// require a module to compare the similarity between two strings
+var levenshtein = require('fast-levenshtein');
+// levenshtein.get('mikailovitch', 'Mikhaïlovitch', { useCollator: true});
+// 1
+function mapByTranscription(transcription, wholeArticle) {
+    // map the corrected transcription to the whole article
+    // check similarity between the transcription and the whole article
+    for (let i = 0; i < wholeArticle.length; i++) {
+        let articleItem = wholeArticle[i];
+        console.log('Article item:', articleItem);
+        let transcriptionSegment = transcription.slice(0, articleItem.split(' ').length - 20);
+        console.log('Transcription segment:', transcriptionSegment);
+    }
+    process.exit(0);
+}
 function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
     let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
@@ -163,56 +182,59 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     };
 }
 
-let redisHost = process.env.REDIS_HOST || '';
-let password = process.env.REDIS_PASSWORD || '';
-let opts = {
-    redis: {
-        host: redisHost,
-        password
-    }
-};
-let lockDuration = 1000 * 60 * 60 * 24;
-let whisperQueue = new Queue('whispercpp', {
-    ...opts,
-    settings: {
-        lockDuration,
-        stalledInterval: 0,
-    },
-});
-let whisperExecFile = 'whisper.cpp';
-let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
-whisperQueue.process(async (job) => {
-    let inputFile = job.data.inputFile;
-    let outputFile = job.data.outputFile;
-    if (!fs.existsSync(outputFile) ) {
-        await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
-    }
-    // 
-    let translated = job.data.translated;
-    let outputSrt = fs.readFileSync(outputFile, 'utf8');
-    let outputSrtJson = JSON.parse(outputSrt);
-    let transcription = outputSrtJson.transcription;
-    let correctedTranscription = correctTranscription(transcription, translated);
-
-    return correctedTranscription;
-});
-
-// (async function(){
-//     console.log('Start whispering...');
-//     let inputFile = '/whisper.cpp/in.wav';
-
-//     let djb2Str = djb2(translated.join(''));
-//     let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
-//     //
-//     if ( !fs.existsSync(outputFile) ) {
-//         await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
-//     }
-//     let outputSrt = fs.readFileSync(outputFile, 'utf8');
-//     // console.log(outputSrt);
-//     let outputSrtJson = JSON.parse(outputSrt);
-//     let transcription = outputSrtJson.transcription;
-//     // console.log(transcription);
-//     let correctedTranscription = correctTranscription(transcription, translated);
-//     // console.log('-'.repeat(290));
-//     // console.log(correctedTranscription.map((item) => { return item.text.trim(); }).join(' '));
-// })();
+let redisHost = process.env.REDIS_HOST;
+if (redisHost) {
+    let Queue = require('bull');
+    let password = process.env.REDIS_PASSWORD || '';
+    let opts = {
+        redis: {
+            host: redisHost,
+            password
+        }
+    };
+    let lockDuration = 1000 * 60 * 60 * 24;
+    let whisperQueue = new Queue('whispercpp', {
+        ...opts,
+        settings: {
+            lockDuration,
+            stalledInterval: 0,
+        },
+    });
+    let whisperExecFile = 'whisper.cpp';
+    let modelFile = '/whisper.cpp/models/ggml-tiny.bin';
+    whisperQueue.process(async (job) => {
+        let inputFile = job.data.inputFile;
+        let outputFile = job.data.outputFile;
+        if (!fs.existsSync(outputFile) ) {
+            await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
+        }
+        // 
+        let translated = job.data.translated;
+        let outputSrt = fs.readFileSync(outputFile, 'utf8');
+        let outputSrtJson = JSON.parse(outputSrt);
+        let transcription = outputSrtJson.transcription;
+        let correctedTranscription = correctTranscription(transcription, translated);
+    
+        return correctedTranscription;
+    });
+}else{
+    (async function(){
+        console.log('Start whispering...');
+        let inputFile = '/whisper.cpp/in.wav';
+    
+        let djb2Str = djb2(translated.join(''));
+        let outputFile = '/whisper.cpp/output/x' + djb2Str +'.json';
+        //
+        if ( !fs.existsSync(outputFile) ) {
+            await whisperFile(modelFile, inputFile, outputFile, whisperExecFile);
+        }
+        let outputSrt = fs.readFileSync(outputFile, 'utf8');
+        // console.log(outputSrt);
+        let outputSrtJson = JSON.parse(outputSrt);
+        let transcription = outputSrtJson.transcription;
+        // console.log(transcription);
+        let correctedTranscription = correctTranscription(transcription, translated);
+        console.log('-'.repeat(290));
+        console.log(correctedTranscription[0]);
+    })();
+}

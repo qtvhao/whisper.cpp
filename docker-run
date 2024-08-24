@@ -8,6 +8,7 @@ WAV_OUTPUT="./in.wav"
 # read_wav: WAV file 'in.wav' must be 16 kHz
 # ffmpeg -i $AAC_FILE $WAV_OUTPUT -y
 ffmpeg -i $AAC_FILE -ar 16000 $WAV_OUTPUT -y
+docker compose down
 docker compose up -d --build
 docker compose logs -f app
 
