@@ -83,18 +83,25 @@ function correctTranscription(transcription, translated) {
         processed = processIncorrectPhrases(processed.transcription2, processed.translatedText2, processed.fromBeginning);
     } while (processed.transcription2.length > 0);
     //
-    for (let i = 0; i < processed.fromBeginning.length; i++) {
-        let item = processed.fromBeginning[i];
-        console.log(i, ', ', item.text);
-    }
-    processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
+    processed.fromBeginning = processed.fromBeginning.map((item) => {
+        return {
+            text: item.text.trim(),
+            // tmpCorrected
+            corrected: item.tmpCorrected ? false : true,
+        };
+    });
+    // for (let i = 0; i < processed.fromBeginning.length; i++) {
+    //     let item = processed.fromBeginning[i];
+    //     console.log(i, ', ', item.text);
+    // }
+    // processed.fromBeginning = processed.fromBeginning.filter((item) => { return !item.beRemoved; });
 
     return processed.fromBeginning;
 };
 function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
     let correctedAtFirst = transcription.findIndex((item) => { return item.corrected; });
     let postTextItems = transcription.slice(correctedAtFirst, correctedAtFirst + 5);
-    let postText = postTextItems.map((item) => { return item.text; }).join('').toLowerCase().trim();
+    let postText = postTextItems.map((item) => { return item.text.trim(); }).join(' ').toLowerCase().trim();
     postText = removePunctuation(postText);
     if (correctedAtFirst > 0) {
         let positionOfPostTextInTranslatedText = translatedText.indexOf(postText);
@@ -117,6 +124,7 @@ function processIncorrectPhrases(transcription, translatedText, fromBeginning) {
             for (let i = 1; i < correctedAtFirst; i++) {
                 // transcription[i].text = "";
                 transcription[i].corrected = true;
+                transcription[i].tmpCorrected = true;
                 // transcription[i].beRemoved = true;
             }
         }
